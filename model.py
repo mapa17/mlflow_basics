@@ -83,6 +83,9 @@ def get_testing_dataloader(root_dir : Path, batch_size : int = 32) -> DataLoader
     return torch.utils.data.DataLoader(data, batch_size=batch_size)
 
 
+def create_model() -> nn.Module:
+    return Net()
+
 def create_optimizer(model : nn.Module) -> optim.Optimizer: 
     return optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
@@ -90,12 +93,11 @@ def create_loss_fun():
     return nn.CrossEntropyLoss()
 
 
-def train_model(model : nn.Module, epochs : int , data : DataLoader, print_steps = 5):
+def train_model(model : nn.Module, optimizer : optim.Optimizer, epochs : int , data : DataLoader, print_steps = 5):
     print(f"Training model ...")
     model.train()
     S = len(data) // print_steps
     for epoch in range(epochs):  # loop over the dataset multiple times
-        optimizer = create_optimizer(model)
         loss_func = create_loss_fun()
         running_loss = 0.0
         for i, (images, labels) in enumerate(data, 0):
@@ -137,3 +139,21 @@ def test_model(model : nn.Module, data : DataLoader) :
 
     print(f"Finished testing model ...") 
     return confusion_matrix
+
+def save(model : nn.Module, optimizer : optim.Optimizer, epoch : int, path : str = "model.pt") :
+    torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            }, path)
+
+def load(path : str = "model.pt") -> Tuple[nn.Module, optim.Optimizer, int]:
+    model = create_model()
+    optimizer = create_optimizer(model)
+
+    checkpoint = torch.load(path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    epoch = checkpoint['epoch']
+
+    return model, optimizer, epoch
